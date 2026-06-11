@@ -599,6 +599,17 @@ body {
 .search-res-sub { font-size: 11px; color: var(--text-secondary); }
 
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
+.topbar-user-pill {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  margin-left: 4px;
+  transition: var(--transition);
+}
+.topbar-user-pill:hover { background: var(--bg-card-hover); border-color: var(--accent); }
+
 
 .topbar-btn {
   width: 36px; height: 36px;

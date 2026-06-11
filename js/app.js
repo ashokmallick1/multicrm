@@ -133,7 +133,10 @@ const App = {
 
   logout() {
     DB.del('session');
+    DB.del('lastBiz');
     this.state.user = null;
+    this.state.bizId = null;
+    this.state.module = 'dashboard';
     this.renderLogin();
   },
 
@@ -325,6 +328,10 @@ const App = {
     </button>
     <button class="topbar-btn" title="Quick Add" onclick="App.openModal('add-contact','${biz.id}')">➕</button>
     <button class="topbar-btn" title="Refresh" onclick="App._renderModule()">🔄</button>
+    <div class="topbar-user-pill" title="Logged in as ${escHtml(this.state.user.name)} (${escHtml(this.state.user.role)})" onclick="App.logout()" style="cursor:pointer">
+      <div class="user-avatar" style="width:28px;height:28px;font-size:12px;border-radius:8px;background:${this.state.user.color || '#6366F1'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${escHtml(this.state.user.avatar || this.state.user.name[0])}</div>
+      <span style="font-size:12px;font-weight:500;color:var(--text-secondary)">${escHtml(this.state.user.name.split(' ')[0])}</span>
+    </div>
   </div>
 </div>`;
   },
@@ -419,9 +426,9 @@ const App = {
     if (invoices.length > 0) {
       html += `<div class="search-res-group">Invoices</div>`;
       invoices.slice(0,3).forEach(i => {
-        html += `<div class="search-res-item" onmousedown="App.nav('billing')">
+        html += `<div class="search-res-item" onmousedown="App.nav('invoices')">
           <div class="search-res-title">${escHtml(i.number)} - ${escHtml(i.client)}</div>
-          <div class="search-res-sub">Amount: ₹${i.amount.toLocaleString('en-IN')}</div>
+          <div class="search-res-sub">Amount: ${fmtINR(i.amount)}</div>
         </div>`;
       });
     }
