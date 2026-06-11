@@ -215,13 +215,21 @@ try {
 
 if (!USERS || USERS.length === 0) {
   USERS = [
-    { id: 'u1', username: 'admin', password: 'Zero@12345', name: 'Ashok Admin', role: 'Admin', email: 'ashok@agranigroup.in', avatar: 'A', color: '#6366F1', permissions: DEFAULT_ROLES.Admin, allowedBusinesses: ['all'] },
-    { id: 'u2', username: 'ranjit', password: 'ranjit123', name: 'Ranjit Sahoo', role: 'Manager', email: 'ranjit@agranigroup.in', avatar: 'R', color: '#10B981', permissions: DEFAULT_ROLES.Manager, allowedBusinesses: ['all'] },
-    { id: 'u3', username: 'priya', password: 'priya123', name: 'Priya Mohanty', role: 'Staff', email: 'priya@agranigroup.in', avatar: 'P', color: '#EC4899', permissions: DEFAULT_ROLES.Staff, allowedBusinesses: ['all'] },
-    { id: 'u4', username: 'suresh', password: 'suresh123', name: 'Suresh Kumar', role: 'Staff', email: 'suresh@agranigroup.in', avatar: 'S', color: '#F59E0B', permissions: DEFAULT_ROLES.Staff, allowedBusinesses: ['all'] },
-    { id: 'u5', username: 'user1', password: 'Zero@123', name: 'Normal User', role: 'Staff', email: 'user1@agranigroup.in', avatar: 'U', color: '#8B5CF6', permissions: DEFAULT_ROLES.Staff, allowedBusinesses: ['superia-travel'] },
+    { id: 'u1', username: 'admin',  password: 'Zero@12345', name: 'Ashok Admin',   role: 'Admin',   email: 'ashok@agranigroup.in',  avatar: 'A', color: '#6366F1', permissions: DEFAULT_ROLES.Admin,   allowedBusinesses: ['all'] },
+    { id: 'u2', username: 'ranjit', password: 'ranjit123',  name: 'Ranjit Sahoo',  role: 'Manager', email: 'ranjit@agranigroup.in', avatar: 'R', color: '#10B981', permissions: DEFAULT_ROLES.Manager, allowedBusinesses: ['all'] },
+    { id: 'u3', username: 'priya',  password: 'priya123',   name: 'Priya Mohanty', role: 'Staff',   email: 'priya@agranigroup.in',  avatar: 'P', color: '#EC4899', permissions: DEFAULT_ROLES.Staff,   allowedBusinesses: ['all'] },
+    { id: 'u4', username: 'suresh', password: 'suresh123',  name: 'Suresh Kumar',  role: 'Staff',   email: 'suresh@agranigroup.in', avatar: 'S', color: '#F59E0B', permissions: DEFAULT_ROLES.Staff,   allowedBusinesses: ['all'] },
+    { id: 'u5', username: 'user1',  password: 'Zero@123',   name: 'Normal User',   role: 'Staff',   email: 'user1@agranigroup.in',  avatar: 'U', color: '#8B5CF6', permissions: DEFAULT_ROLES.Staff,   allowedBusinesses: ['superia-travel'] },
   ];
   localStorage.setItem('agrani_users', JSON.stringify(USERS));
+} else {
+  // Migrate: hydrate any users missing permissions or allowedBusinesses
+  let needsSave = false;
+  USERS.forEach(u => {
+    if (!u.permissions) { u.permissions = DEFAULT_ROLES[u.role] || []; needsSave = true; }
+    if (!u.allowedBusinesses) { u.allowedBusinesses = ['all']; needsSave = true; }
+  });
+  if (needsSave) localStorage.setItem('agrani_users', JSON.stringify(USERS));
 }
 
 // =============================================
@@ -389,7 +397,7 @@ if (!localStorage.getItem('agrani_purge_falsedata_v2')) {
   console.log("Purged false data from localStorage.");
 }
 
-    function initData() {
+function initData() {
   let savedBiz = [];
   try {
     savedBiz = JSON.parse(localStorage.getItem('agrani_businesses') || '[]');

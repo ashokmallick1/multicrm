@@ -109,10 +109,19 @@ const App = {
     const password = document.getElementById('loginPass').value;
     const user = USERS.find(u => u.username.toLowerCase() === username && u.password === password);
     if (user) {
-      const safe = { id: user.id, name: user.name, role: user.role, email: user.email, avatar: user.avatar, color: user.color };
-      DB.set('session', safe);
-      this.state.user = safe;
-      this.state.bizId = DB.get('lastBiz') || BUSINESSES[0].id;
+      // Ensure all required fields are present with safe fallbacks
+      if (!user.permissions) user.permissions = DEFAULT_ROLES[user.role] || [];
+      if (!user.allowedBusinesses) user.allowedBusinesses = ['all'];
+      // Save full user object to session
+      DB.set('session', user);
+      this.state.user = user;
+      // Pick a valid business for this user
+      let lastBiz = DB.get('lastBiz') || BUSINESSES[0].id;
+      const allowed = user.allowedBusinesses || [];
+      if (!allowed.includes('all') && !allowed.includes(lastBiz)) {
+        lastBiz = allowed[0] || BUSINESSES[0].id;
+      }
+      this.state.bizId = lastBiz;
       this.state.module = 'dashboard';
       this.renderApp();
     } else {

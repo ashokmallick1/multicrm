@@ -6,25 +6,18 @@
   <title>Agrani CRM — Multi-Business Intelligence Platform</title>
   <meta name="description" content="Premium unified CRM for Agrani Group — manage travel, logistics, finance, construction, pest control and digital businesses from one powerful platform.">
   <meta name="keywords" content="CRM, business management, Agrani, travel CRM, construction CRM, finance CRM">
+  <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body style="background: #1e1e2f; color: #fff; margin:0; font-family: sans-serif;">
-  <div id="errorBox" style="padding: 20px; font-family: monospace; color: #ff5555; background: #000; border: 1px solid #ff5555; display: none;"></div>
-  <script>
-    window.onerror = function(msg, url, line, col, error) {
-      document.getElementById('errorBox').style.display = 'block';
-      document.getElementById('errorBox').innerHTML += 'ERROR: ' + msg + '<br>Line: ' + line + ':' + col + '<br><br>';
-      return false; // let it still print to console
-    };
-  </script>
+<body>
   <div id="app"></div>
   <div class="toast-container" id="toastContainer"></div>
-  <script src="js/data.js?v=8"></script>
-  <script src="js/modules.js?v=8"></script>
-  <script src="js/app.js?v=8"></script>
+  <script src="js/data.js"></script>
+  <script src="js/modules.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
