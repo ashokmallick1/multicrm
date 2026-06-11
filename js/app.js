@@ -166,13 +166,18 @@ const App = {
 
     // Group businesses by type, filtered by user permissions
     const groups = {};
+    const inactiveList = [];
     const allowed = this.state.user.allowedBusinesses || [];
     const isAll = allowed.includes('all');
     
     BUSINESSES.forEach(b => {
       if (isAll || allowed.includes(b.id)) {
-        if (!groups[b.type]) groups[b.type] = [];
-        groups[b.type].push(b);
+        if (b.active === false) {
+          inactiveList.push(b);
+        } else {
+          if (!groups[b.type]) groups[b.type] = [];
+          groups[b.type].push(b);
+        }
       }
     });
 
@@ -216,6 +221,18 @@ const App = {
             `).join('')}
           </div>
         `).join('')}
+        ${inactiveList.length > 0 ? `
+          <div class="biz-dropdown-group" data-group="inactive">
+            <div class="biz-group-label" style="opacity:0.6">Inactive Businesses</div>
+            ${inactiveList.map(b => `
+              <div class="biz-item ${b.id === this.state.bizId ? 'active' : ''}" onclick="App.switchBiz('${b.id}')" data-bizname="${escHtml(b.name.toLowerCase())}" style="opacity:0.6">
+                <div class="biz-item-dot" style="background:${b.color}; filter:grayscale(1)"></div>
+                <span class="biz-item-name">${escHtml(b.name)} (Inactive)</span>
+                ${b.id === this.state.bizId ? '<span class="biz-item-check">✓</span>' : ''}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
       </div>
       ${(this.state.user.permissions || []).includes('manage_businesses') ? `
       <div class="biz-dropdown-group" style="margin-top:8px; border-top:1px solid var(--border); padding-top:8px">
@@ -233,7 +250,7 @@ const App = {
       <div class="nav-item ${this.state.module === item.id ? 'active' : ''}" onclick="App.nav('${item.id}')" id="nav-${item.id}">
         <span class="nav-icon">${item.icon}</span>
         <span class="nav-label">${item.label}</span>
-        ${item.id === 'tasks' ? `<span class="nav-badge" id="taskBadge">${DB.bget(this.state.bizId,'tasks').filter(t=>!t.done).length}</span>` : ''}
+        ${item.id === 'tasks' ? `<span class="nav-badge" id="taskBadge">${DB.bget(this.state.bizId,'tasks').filter(t=>!t.done && (!t.assignedTo || t.assignedTo===this.state.user.id)).length}</span>` : ''}
       </div>
     `).join('')}
 
@@ -320,6 +337,7 @@ const App = {
     <div class="global-search-dropdown" id="globalSearchDropdown"></div>
   </div>
   <div class="topbar-actions">
+    <button class="topbar-btn" title="Submit Timesheet" onclick="App.openModal('submit-eod')" style="background:var(--success);color:white;border:none">⏱️ EOD</button>
     <button class="topbar-btn" title="Toggle Theme" onclick="App.toggleTheme()">
       ${document.documentElement.getAttribute('data-theme') === 'light' ? '🌙' : '☀️'}
     </button>
@@ -1090,6 +1108,35 @@ const App = {
     this.renderApp();
   },
 
+  toggleBizActive(bizId, active) {
+    const biz = BUSINESSES.find(b => b.id === bizId);
+    if (!biz) return;
+    biz.active = active;
+    DB.updateBusiness(bizId, { active });
+    this.toast(`Business marked as ${active ? 'Active' : 'Inactive'}`, 'success');
+    this.renderApp();
+  },
+
+  saveBizInfo(bizId) {
+    const phone = document.getElementById('set_phone')?.value || '';
+    const altPhone = document.getElementById('set_altPhone')?.value || '';
+    const email = document.getElementById('set_email')?.value || '';
+    const website = document.getElementById('set_website')?.value || '';
+    const address = document.getElementById('set_address')?.value || '';
+    const gst = document.getElementById('set_gst')?.value || '';
+    
+    DB.updateBusiness(bizId, { phone, altPhone, email, website, address, gst });
+    
+    const biz = BUSINESSES.find(b => b.id === bizId);
+    if (biz) {
+      biz.phone = phone; biz.altPhone = altPhone; biz.email = email;
+      biz.website = website; biz.address = address; biz.gst = gst;
+    }
+    
+    this.toast('Business information saved!', 'success');
+    this._renderModule();
+  },
+
   closeModal() {
     document.getElementById('modalOverlay')?.remove();
   },
@@ -1189,17 +1236,19 @@ const App = {
 
   _taskForm(bizId) {
     const today = new Date().toISOString().split('T')[0];
+    const users = USERS.filter(u => u.allowedBusinesses.includes('all') || u.allowedBusinesses.includes(bizId));
     return `
 <div class="modal-header"><span class="modal-title">✅ Add New Task</span><button class="modal-close" onclick="App.closeModal()">✕</button></div>
 <div class="modal-body">
   <div class="form-field"><label class="form-label">Task Title *</label><input class="form-input" id="tf_title" placeholder="e.g. Follow up with Ramesh Kumar" required></div>
+  <div class="form-field"><label class="form-label">Description</label><textarea class="form-textarea" id="tf_desc" placeholder="Details about this task..."></textarea></div>
   <div class="form-row">
     <div class="form-field"><label class="form-label">Due Date</label><input class="form-input" id="tf_date" type="date" value="${today}"></div>
     <div class="form-field"><label class="form-label">Priority</label><select class="form-select" id="tf_priority"><option value="high">🔴 High</option><option value="medium" selected>🟡 Medium</option><option value="low">🟢 Low</option></select></div>
   </div>
   <div class="form-row">
-    <div class="form-field"><label class="form-label">Assignee</label><select class="form-select" id="tf_assignee">${USERS.map(u=>`<option>${escHtml(u.name)}</option>`).join('')}</select></div>
-    <div class="form-field"><label class="form-label">Contact (optional)</label><select class="form-select" id="tf_contact"><option value="">— None —</option>${DB.bget(bizId,'contacts').map(c=>`<option>${escHtml(c.name)}</option>`).join('')}</select></div>
+    <div class="form-field"><label class="form-label">Assignee</label><select class="form-select" id="tf_assignee">${users.map(u=>`<option value="${u.id}" ${u.id===this.state.user.id?'selected':''}>${escHtml(u.name)}</option>`).join('')}</select></div>
+    <div class="form-field"><label class="form-label">Contact (optional)</label><select class="form-select" id="tf_contact"><option value="">— None —</option>${DB.bget(bizId,'contacts').map(c=>`<option value="${c.id}">${escHtml(c.name)}</option>`).join('')}</select></div>
   </div>
 </div>
 <div class="modal-footer">
@@ -1213,11 +1262,71 @@ const App = {
     if (!title) { this.toast('Task title is required!', 'error'); return; }
     DB.bpush(bizId, 'tasks', {
       title,
-      dueDate:  document.getElementById('tf_date')?.value,
-      priority: document.getElementById('tf_priority')?.value,
-      assignee: document.getElementById('tf_assignee')?.value,
-      contact:  document.getElementById('tf_contact')?.value,
-      done: false,
+      desc:      document.getElementById('tf_desc')?.value?.trim(),
+      priority:  document.getElementById('tf_priority')?.value,
+      dueDate:   document.getElementById('tf_date')?.value,
+      contact:   document.getElementById('tf_contact')?.value,
+      assignedTo:document.getElementById('tf_assignee')?.value || this.state.user.id,
+      assignedBy:this.state.user.id,
+      done: false
+    });
+    this.closeModal();
+    this._renderModule();
+    this.toast('Task added!', 'success');
+  },
+
+  _submitEodForm() {
+    const today = new Date().toISOString().split('T')[0];
+    const userBusinesses = BUSINESSES.filter(b => this.state.user.allowedBusinesses.includes('all') || this.state.user.allowedBusinesses.includes(b.id));
+    return `
+<div class="modal-header"><span class="modal-title">⏱️ Submit Daily Timesheet</span><button class="modal-close" onclick="App.closeModal()">✕</button></div>
+<div class="modal-body">
+  <div class="form-field"><label class="form-label">Date</label><input type="date" class="form-input" id="eod_date" value="${today}" max="${today}"></div>
+  <div class="form-row">
+    <div class="form-field"><label class="form-label">Business</label><select class="form-select" id="eod_biz">
+      ${userBusinesses.map(b => `<option value="${b.id}">${escHtml(b.name)}</option>`).join('')}
+    </select></div>
+    <div class="form-field"><label class="form-label">Hours Spent</label><input type="number" class="form-input" id="eod_hours" min="0.5" step="0.5" value="8"></div>
+  </div>
+  <div class="form-field"><label class="form-label">Work Description</label><textarea class="form-textarea" id="eod_desc" placeholder="What did you work on today? e.g. Called 10 leads, closed 2 deals" rows="4"></textarea></div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-secondary" onclick="App.closeModal()">Cancel</button>
+  <button class="btn btn-primary" onclick="App.saveTimesheetEntry()">Submit Timesheet</button>
+</div>`;
+  },
+
+  saveTimesheetEntry() {
+    const date = document.getElementById('eod_date')?.value;
+    const bizId = document.getElementById('eod_biz')?.value;
+    const hours = parseFloat(document.getElementById('eod_hours')?.value) || 0;
+    const desc = document.getElementById('eod_desc')?.value?.trim();
+
+    if (!desc || hours <= 0) {
+      this.toast('Please enter valid hours and description', 'error');
+      return;
+    }
+
+    const bizName = BUSINESSES.find(b => b.id === bizId)?.name || bizId;
+    const sheets = DB.get('timesheets') || [];
+    sheets.push({
+      id: uid(),
+      userId: this.state.user.id,
+      userName: this.state.user.name,
+      userAvatar: this.state.user.avatar,
+      userColor: this.state.user.color,
+      bizId, bizName,
+      date, hours, desc,
+      submittedAt: new Date().toISOString()
+    });
+    DB.set('timesheets', sheets);
+
+    this.closeModal();
+    if (this.state.module === 'timesheets') this._renderModule();
+    this.toast('Timesheet submitted successfully!', 'success');
+  },r.id,
+      assignedBy:this.state.user.id,
+      done: false
     });
     this.closeModal();
     this._renderModule();

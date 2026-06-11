@@ -461,15 +461,23 @@ Modules.tasks = {
   label: 'Tasks & Calendar',
   render(biz) {
     const tasks = DB.bget(biz.id,'tasks');
-    const open  = tasks.filter(t=>!t.done);
-    const done  = tasks.filter(t=>t.done);
+    const isAdmin = App.state.user.role === 'Admin' || App.state.user.role === 'Manager';
+    const activeTab = App.state.taskTab || 'my_pending'; // custom state for task tabs
+
+    let filtered = tasks;
+    if (activeTab === 'my_pending') filtered = tasks.filter(t => !t.done && (!t.assignedTo || t.assignedTo === App.state.user.id));
+    else if (activeTab === 'my_done') filtered = tasks.filter(t => t.done && (!t.assignedTo || t.assignedTo === App.state.user.id));
+    else if (activeTab === 'all_pending') filtered = tasks.filter(t => !t.done);
+    else if (activeTab === 'all_done') filtered = tasks.filter(t => t.done);
+
+    const openCount = tasks.filter(t => !t.done && (!t.assignedTo || t.assignedTo === App.state.user.id)).length;
 
     return `
 <div class="page-content">
   <div class="page-header">
     <div class="page-header-left">
       <h2>Tasks & Follow-ups</h2>
-      <p>${open.length} pending • ${done.length} completed</p>
+      <p>You have ${openCount} pending tasks in ${escHtml(biz.name)}</p>
     </div>
     <div class="page-header-actions">
       <button class="btn btn-primary" onclick="App.openModal('add-task','${biz.id}')">+ Add Task</button>
@@ -477,23 +485,24 @@ Modules.tasks = {
   </div>
 
   <div class="tabs mb-4" id="taskTabs">
-    <button class="tab-btn active" onclick="App.taskTab(this,'open')">Open (${open.length})</button>
-    <button class="tab-btn" onclick="App.taskTab(this,'done')">Completed (${done.length})</button>
+    <button class="tab-btn ${activeTab==='my_pending'?'active':''}" onclick="App.state.taskTab='my_pending';App._renderModule()">My Pending</button>
+    <button class="tab-btn ${activeTab==='my_done'?'active':''}" onclick="App.state.taskTab='my_done';App._renderModule()">My Completed</button>
+    ${isAdmin ? `
+      <button class="tab-btn ${activeTab==='all_pending'?'active':''}" onclick="App.state.taskTab='all_pending';App._renderModule()">All Pending</button>
+      <button class="tab-btn ${activeTab==='all_done'?'active':''}" onclick="App.state.taskTab='all_done';App._renderModule()">All Completed</button>
+    ` : ''}
   </div>
 
-  <div id="taskListOpen">
-    ${open.length===0?`<div class="empty-state"><div class="empty-state-icon">✅</div><h3>All caught up!</h3><p>No pending tasks. Great work!</p></div>`:''}
-    ${open.map(t=>Modules.tasks._row(t,biz.id)).join('')}
-  </div>
-  <div id="taskListDone" class="hidden">
-    ${done.map(t=>Modules.tasks._row(t,biz.id)).join('')}
+  <div id="taskList">
+    ${filtered.length===0?`<div class="empty-state"><div class="empty-state-icon">✅</div><h3>All caught up!</h3><p>No tasks found for this view.</p></div>`:''}
+    ${filtered.map(t=>Modules.tasks._row(t,biz.id)).join('')}
   </div>
 </div>`;
   },
   _row(t,bizId) {
-    const pClr = t.priority==='high'?'var(--danger)':t.priority==='medium'?'var(--warning)':'var(--success)';
     const days  = daysUntil(t.dueDate);
     const overdue = days!==null && days<0 && !t.done;
+    const assignedUser = USERS.find(u => u.id === t.assignedTo)?.name || 'Unassigned';
     return `<div class="job-item" style="margin-bottom:8px;opacity:${t.done?0.6:1}">
       <div>
         <input type="checkbox" ${t.done?'checked':''} style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent)"
@@ -503,8 +512,9 @@ Modules.tasks = {
         <div style="font-size:13px;font-weight:600;color:var(--text-primary);${t.done?'text-decoration:line-through;':''}">
           ${escHtml(t.title)}
         </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
-          👤 ${escHtml(t.assignee||'Unassigned')} &nbsp;•&nbsp; ${t.contact?'🔗 '+escHtml(t.contact):''}
+        ${t.desc ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">${escHtml(t.desc)}</div>` : ''}
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+          👤 ${escHtml(assignedUser)} &nbsp;•&nbsp; ${t.contact?'🔗 '+escHtml(t.contact):''}
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0">
@@ -682,31 +692,124 @@ Modules.reports = {
 
 
 // =============================================
-// SETTINGS
+// TIMESHEETS
+// =============================================
+Modules.timesheets = {
+  label: 'Timesheets',
+  render(biz) {
+    const sheets = DB.get('timesheets') || [];
+    const isAdmin = App.state.user.role === 'Admin' || App.state.user.role === 'Manager';
+    const activeTab = App.state.tsTab || (isAdmin ? 'all' : 'mine');
 
+    let filtered = sheets;
+    if (activeTab === 'mine') filtered = sheets.filter(s => s.userId === App.state.user.id);
+    
+    // sort by date desc
+    filtered.sort((a,b) => b.date.localeCompare(a.date));
+
+    return `
+<div class="page-content">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2>Daily Timesheets</h2>
+      <p>End of day reports and activity logs</p>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-primary" onclick="App.openModal('submit-eod')">⏱️ Submit EOD</button>
+    </div>
+  </div>
+
+  <div class="tabs mb-4">
+    <button class="tab-btn ${activeTab==='mine'?'active':''}" onclick="App.state.tsTab='mine';App._renderModule()">My Timesheets</button>
+    ${isAdmin ? `<button class="tab-btn ${activeTab==='all'?'active':''}" onclick="App.state.tsTab='all';App._renderModule()">All Team Members</button>` : ''}
+  </div>
+
+  <div class="card">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          ${activeTab==='all' ? `<th>Team Member</th>` : ''}
+          <th>Business</th>
+          <th>Work Description</th>
+          <th style="text-align:right">Hours</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filtered.length===0?`<tr><td colspan="5" class="empty-state">No timesheets submitted yet.</td></tr>`:''}
+        ${filtered.map(s => `
+        <tr>
+          <td><div style="font-weight:500;white-space:nowrap">${fmtDateShort(s.date)}</div></td>
+          ${activeTab==='all' ? `
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:24px;height:24px;border-radius:6px;background:${s.userColor||'#6366F1'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold">${s.userAvatar||s.userName[0]}</div>
+              <span style="font-weight:500">${escHtml(s.userName)}</span>
+            </div>
+          </td>` : ''}
+          <td><span class="badge" style="background:var(--surface-hover);color:var(--text-primary)">${escHtml(s.bizName)}</span></td>
+          <td style="max-width:300px;white-space:normal;color:var(--text-secondary);font-size:13px">${escHtml(s.desc)}</td>
+          <td style="text-align:right;font-weight:600">${s.hours}h</td>
+        </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+  },
+  init() {}
+};
+
+// =============================================
+// SETTINGS
 // =============================================
 Modules.settings = {
   label: 'Settings',
   render(biz) {
+    const canEdit = (App.state.user.permissions || []).includes('manage_business_info');
+    
     return `
 <div class="page-content">
   <div class="page-header">
     <div class="page-header-left"><h2>Settings</h2><p>Configure ${escHtml(biz.name)}</p></div>
-    <div class="page-header-actions"><button class="btn btn-primary" onclick="App.toast('Settings saved!','success')">Save Changes</button></div>
+    <div class="page-header-actions">
+      ${canEdit ? `<button class="btn btn-primary" onclick="App.saveBizInfo('${biz.id}')">Save Changes</button>` : ''}
+    </div>
   </div>
   <div class="grid-2">
     <div>
       <div class="card mb-4">
         <div class="card-header"><div class="card-title">Business Profile</div></div>
         <div class="card-body">
-          <div class="form-field"><label class="form-label">Business Name</label><input class="form-input" value="${escHtml(biz.name)}"></div>
-          <div class="form-field"><label class="form-label">Tagline</label><input class="form-input" value="${escHtml(biz.tagline)}"></div>
-          <div class="form-field"><label class="form-label">Email</label><input class="form-input" type="email" value="info@${biz.id}.in"></div>
-          <div class="form-field"><label class="form-label">Phone</label><input class="form-input" value="+91 98765 43210"></div>
-          <div class="form-field"><label class="form-label">Address</label><textarea class="form-textarea">Plot No. 45, Janpath, Bhubaneswar, Odisha 751001</textarea></div>
-          <div class="form-field"><label class="form-label">GST Number</label><input class="form-input" value="21AABCU9603R1ZX"></div>
+          <div class="form-field"><label class="form-label">Business Name</label><input class="form-input" value="${escHtml(biz.name)}" disabled></div>
+          <div class="form-field"><label class="form-label">Tagline</label><input class="form-input" value="${escHtml(biz.tagline)}" disabled></div>
+          <div class="form-row">
+            <div class="form-field"><label class="form-label">Email</label><input class="form-input" id="set_email" type="email" value="${escHtml(biz.email||'')}" ${canEdit?'':'disabled'}></div>
+            <div class="form-field"><label class="form-label">Website</label><input class="form-input" id="set_website" value="${escHtml(biz.website||'')}" ${canEdit?'':'disabled'}></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label class="form-label">Primary Phone</label><input class="form-input" id="set_phone" value="${escHtml(biz.phone||'')}" ${canEdit?'':'disabled'}></div>
+            <div class="form-field"><label class="form-label">Alt Phone</label><input class="form-input" id="set_altPhone" value="${escHtml(biz.altPhone||'')}" ${canEdit?'':'disabled'}></div>
+          </div>
+          <div class="form-field"><label class="form-label">Address</label><textarea class="form-textarea" id="set_address" ${canEdit?'':'disabled'}>${escHtml(biz.address||'')}</textarea></div>
+          <div class="form-field"><label class="form-label">GST Number</label><input class="form-input" id="set_gst" value="${escHtml(biz.gst||'')}" ${canEdit?'':'disabled'}></div>
         </div>
       </div>
+      
+      ${(App.state.user.role === 'Admin' || App.state.user.role === 'Manager') ? `
+      <div class="card mb-4" style="border:1px solid ${biz.active!==false?'var(--danger)':'var(--success)'}">
+        <div class="card-header" style="background:${biz.active!==false?'var(--danger)':'var(--success)'}11"><div class="card-title" style="color:${biz.active!==false?'var(--danger)':'var(--success)'}">${biz.active!==false?'Deactivate':'Activate'} Business</div></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+            ${biz.active!==false 
+              ? 'Deactivating will hide this business from the main list and mark it as inactive. Data will not be deleted.' 
+              : 'Activating will restore this business to the main list for regular operations.'}
+          </p>
+          <button class="btn btn-${biz.active!==false?'danger':'success'}" onclick="App.toggleBizActive('${biz.id}', ${biz.active!==false?false:true})">
+            ${biz.active!==false?'Mark as Inactive':'Restore to Active'}
+          </button>
+        </div>
+      </div>` : ''}
     </div>
     <div>
       <div class="card mb-4">

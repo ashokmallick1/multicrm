@@ -184,6 +184,7 @@ const INDUSTRY_NAV = {
 
 const BOTTOM_NAV = [
   { id:'team',     label:'Team',     icon:'👤' },
+  { id:'timesheets', label:'Timesheets', icon:'⏱️' },
   { id:'settings', label:'Settings', icon:'⚙️' },
 ];
 
@@ -193,6 +194,7 @@ const BOTTOM_NAV = [
 const PERMISSIONS = {
   view_all_businesses: 'View All Businesses',
   manage_businesses: 'Create/Edit Businesses',
+  manage_business_info: 'Edit Business Details (Phone, Email, Address)',
   manage_team: 'Add/Edit Team Members',
   view_contacts: 'View Contacts',
   edit_contacts: 'Edit Contacts',
@@ -203,7 +205,7 @@ const PERMISSIONS = {
 
 const DEFAULT_ROLES = {
   Admin: Object.keys(PERMISSIONS),
-  Manager: ['view_contacts', 'edit_contacts', 'manage_tickets', 'view_reports', 'view_financials'],
+  Manager: ['view_contacts', 'edit_contacts', 'manage_tickets', 'view_reports', 'view_financials', 'manage_business_info'],
   Staff: ['view_contacts', 'manage_tickets']
 };
 
@@ -416,6 +418,19 @@ function initData() {
   } else {
     localStorage.setItem('agrani_businesses', JSON.stringify(BUSINESSES));
   }
+
+  // Migrate: ensure active flag and contact info exists on all businesses
+  let needsBizSave = false;
+  BUSINESSES.forEach(b => {
+    if (b.active === undefined) { b.active = true; needsBizSave = true; }
+    if (b.phone === undefined) { b.phone = ''; needsBizSave = true; }
+    if (b.email === undefined) { b.email = ''; needsBizSave = true; }
+    if (b.address === undefined) { b.address = ''; needsBizSave = true; }
+    if (b.gst === undefined) { b.gst = ''; needsBizSave = true; }
+    if (b.website === undefined) { b.website = ''; needsBizSave = true; }
+    if (b.altPhone === undefined) { b.altPhone = ''; needsBizSave = true; }
+  });
+  if (needsBizSave) localStorage.setItem('agrani_businesses', JSON.stringify(BUSINESSES));
 
   BUSINESSES.forEach(b => seedBusiness(b));
 }
