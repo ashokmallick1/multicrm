@@ -680,45 +680,10 @@ Modules.reports = {
   }
 };
 
-// =============================================
-// TEAM
-// =============================================
-Modules.team = {
-  label: 'Team',
-  render(biz) {
-    const roleColors = {Admin:'#6366F1',Manager:'#10B981',Staff:'#F59E0B'};
-    return `
-<div class="page-content">
-  <div class="page-header">
-    <div class="page-header-left"><h2>Team Management 👥</h2><p>Manage your team members and RBAC permissions</p></div>
-    <div class="page-header-actions"><button class="btn btn-primary" onclick="App.openModal('add-employee')">+ Add Employee</button></div>
-  </div>
-  <div class="grid-3">
-    ${USERS.map(u=>`
-    <div class="card" style="padding:24px;text-align:center">
-      <div style="width:64px;height:64px;border-radius:50%;background:${u.color||randomColor(u.name)};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:white;margin:0 auto 14px;box-shadow:0 4px 20px ${u.color||'var(--accent)'}44">${u.avatar}</div>
-      <div style="font-size:15px;font-weight:700;color:var(--text-primary)">${escHtml(u.name)}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin:4px 0 10px">${escHtml(u.email)}</div>
-      <span class="badge" style="background:${(u.color||roleColors[u.role]||'#6366F1')}22;color:${u.color||roleColors[u.role]||'#6366F1'}">${u.role}</span>
-      
-      <div style="margin-top:16px;text-align:left;background:var(--bg-app);padding:10px;border-radius:8px;font-size:11px;color:var(--text-muted);height:80px;overflow-y:auto">
-        <strong>Permissions:</strong><br/>
-        ${(u.permissions||[]).map(p=>`• ${PERMISSIONS[p]||p}`).join('<br/>')}
-      </div>
-
-      <div style="display:flex;gap:8px;justify-content:center;margin-top:16px">
-        <button class="btn btn-secondary btn-sm" onclick="App.openModal('edit-permissions','${u.id}')">Edit Role</button>
-        ${u.role!=='Admin'?`<button class="btn btn-danger btn-sm">Remove</button>`:''}
-      </div>
-    </div>`).join('')}
-  </div>
-</div>`;
-  },
-  init(biz) {}
-};
 
 // =============================================
 // SETTINGS
+
 // =============================================
 Modules.settings = {
   label: 'Settings',
@@ -2135,21 +2100,54 @@ Modules.warranty = {
 // REAL ESTATE & COWORKING
 // =============================================
 Modules.properties = {
-  label: 'Properties & Units',
+  label: 'Properties',
   render(biz) {
     const props = DB.bget(biz.id, 'properties');
-    return `
+    // Construction type: show buy/sell listings with price, BHK, facing
+    if (biz.type === 'construction') {
+      const sColors={Available:'success',Reserved:'warning',Sold:'muted','Under Construction':'info'};
+      return `
 <div class="page-content">
   <div class="page-header">
-    <div class="page-header-left"><h2>🏢 Properties & Units</h2><p>${props.length} units listed</p></div>
+    <div class="page-header-left"><h2>🏠 Property Listings</h2><p>${props.length} properties • ${props.filter(p=>p.status==='Available').length} available</p></div>
     <div class="page-header-actions"><button class="btn btn-primary">+ Add Property</button></div>
   </div>
   <div class="grid-3">
-    ${props.map(p=>`
+    ${props.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🏠</div><h3>No Properties Yet</h3><p>Add your first property listing</p></div>' : props.map(p=>`
+    <div class="site-card">
+      <div class="site-thumb" style="background:linear-gradient(135deg,rgba(20,184,166,0.15),rgba(99,102,241,0.1))">${p.emoji||'🏠'}</div>
+      <div class="site-body">
+        <div class="site-name">${escHtml(p.title)}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">📍 ${escHtml(p.location)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+          <span class="badge badge-muted">${p.area}</span>
+          ${p.bhk?`<span class="badge badge-muted">${p.bhk}</span>`:''}
+          ${p.facing?`<span class="badge badge-muted">${p.facing} Facing</span>`:''}
+          ${p.parking?`<span class="badge badge-muted">🅿️ Parking</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:var(--success)">${fmtINR(p.price)}</div>
+          <span class="badge badge-${sColors[p.status]||'muted'}">${p.status}</span>
+        </div>
+        <button class="btn btn-primary btn-sm w-full mt-3">View Details</button>
+      </div>
+    </div>`).join('')}
+  </div>
+</div>`;
+    }
+    // Real estate / coworking / default: show rent/unit view
+    return `
+<div class="page-content">
+  <div class="page-header">
+    <div class="page-header-left"><h2>🏢 Properties &amp; Units</h2><p>${props.length} units listed</p></div>
+    <div class="page-header-actions"><button class="btn btn-primary">+ Add Unit</button></div>
+  </div>
+  <div class="grid-3">
+    ${props.length === 0 ? '<div class="empty-state"><div class="empty-state-icon">🏢</div><h3>No Units Yet</h3><p>Add your first property or unit</p></div>' : props.map(p=>`
     <div class="card" style="padding:16px">
-      <div style="font-size:32px;margin-bottom:8px">${p.emoji}</div>
+      <div style="font-size:32px;margin-bottom:8px">${p.emoji||'🏢'}</div>
       <div style="font-size:14px;font-weight:700;color:var(--text-primary)">${escHtml(p.title)}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${p.type} • ${p.area}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${p.type||''} • ${p.area||''}</div>
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="font-size:16px;font-weight:700;color:var(--success)">${fmtINR(p.rent)}<span style="font-size:10px;font-weight:400;color:var(--text-muted)">/mo</span></div>
         <span class="badge badge-${p.status==='Occupied'?'primary':p.status==='Vacant'?'success':'warning'}">${p.status}</span>

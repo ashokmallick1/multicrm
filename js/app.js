@@ -77,7 +77,7 @@ const App = {
         <div class="login-error" id="loginError">Invalid username or password. Please try again.</div>
       </form>
       <div class="login-hint">
-        Admin: <code>admin</code> / <code>Zero@12345</code> &nbsp;•&nbsp; User: <code>user1</code> / <code>Zero@123</code>
+        Sign in with your assigned credentials. Contact your administrator if you need access.
       </div>
     </div>
   </div>
@@ -341,7 +341,7 @@ const App = {
     const newTheme = isLight ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('agrani_theme', newTheme);
-    this._renderTopbar();
+    this.renderApp();
   },
 
   exportCSV(type) {
@@ -399,7 +399,7 @@ const App = {
     // Search Deals
     const deals = DB.bget(bizId, 'deals').filter(d => d.title.toLowerCase().includes(query));
     // Search Invoices
-    const invoices = DB.bget(bizId, 'invoices').filter(i => i.number.toLowerCase().includes(query) || i.client.toLowerCase().includes(query));
+    const invoices = DB.bget(bizId, 'invoices').filter(i => (i.number||'').toLowerCase().includes(query) || (i.client||'').toLowerCase().includes(query));
 
     let html = '';
     
@@ -659,7 +659,7 @@ const App = {
   </div>
   <div class="form-row">
     <div class="form-field"><label class="form-label">Status</label><select class="form-select" id="ec_status">
-      ${['new','qualified','proposal','closed-won','closed-lost'].map(s=>`<option value="${s}" ${s===c.status?'selected':''}>${s}</option>`).join('')}
+      ${['new','qualifying','proposal','ongoing','closed-won','closed-lost'].map(s=>`<option value="${s}" ${s===c.status?'selected':''}>${s}</option>`).join('')}
     </select></div>
     <div class="form-field"><label class="form-label">Value (₹)</label><input class="form-input" type="number" id="ec_value" value="${c.value||0}"></div>
   </div>
@@ -1078,8 +1078,7 @@ const App = {
     if(!enabled) biz.addons = biz.addons.filter(a => a !== addonId);
     DB.updateBusiness(bizId, { addons: biz.addons });
     this.toast(`Add-on ${enabled ? 'enabled' : 'disabled'}!`, 'success');
-    this._renderSidebar(); // re-render sidebar to show/hide addon link
-    this._renderTopbar();
+    this.renderApp();
   },
 
   toggleCrossSell(bizId, enabled) {
@@ -1088,8 +1087,7 @@ const App = {
     biz.crossSell = enabled;
     DB.updateBusiness(bizId, { crossSell: enabled });
     this.toast(`Cross-selling ${enabled ? 'enabled' : 'disabled'}!`, 'success');
-    this._renderSidebar();
-    this._renderTopbar();
+    this.renderApp();
   },
 
   closeModal() {
@@ -1279,40 +1277,7 @@ const App = {
   // =============================================
   // NEW FORMS (BUSINESS, TEAM, TICKETS)
   // =============================================
-  _ticketForm(bizId) {
-    const contacts = DB.bget(bizId, 'contacts');
-    return `
-<div class="modal-header"><span class="modal-title">🎫 Create Support Ticket</span><button class="modal-close" onclick="App.closeModal()">✕</button></div>
-<div class="modal-body">
-  <div class="form-field"><label class="form-label">Ticket Title *</label><input class="form-input" id="tk_title" placeholder="e.g. Website down" required></div>
-  <div class="form-row">
-    <div class="form-field"><label class="form-label">Customer</label><select class="form-select" id="tk_contact"><option value="Guest">General / Guest</option>${contacts.map(c=>`<option>${escHtml(c.name)}</option>`).join('')}</select></div>
-    <div class="form-field"><label class="form-label">Priority</label><select class="form-select" id="tk_priority"><option>Low</option><option selected>Medium</option><option>High</option></select></div>
-  </div>
-  <div class="form-field"><label class="form-label">Assignee</label><select class="form-select" id="tk_assignee">${USERS.map(u=>`<option>${escHtml(u.name)}</option>`).join('')}</select></div>
-</div>
-<div class="modal-footer">
-  <button class="btn btn-secondary" onclick="App.closeModal()">Cancel</button>
-  <button class="btn btn-primary" onclick="App.saveTicket('${bizId}')">Create Ticket</button>
-</div>`;
-  },
-
-  saveTicket(bizId) {
-    const title = document.getElementById('tk_title')?.value?.trim();
-    if (!title) { this.toast('Ticket title required!', 'error'); return; }
-    DB.bpush(bizId, 'tickets', {
-      id: `TKT-${Math.floor(Math.random()*10000)}`,
-      title,
-      contact: document.getElementById('tk_contact')?.value,
-      priority: document.getElementById('tk_priority')?.value,
-      assignee: document.getElementById('tk_assignee')?.value,
-      status: 'Open',
-      date: new Date().toISOString()
-    });
-    this.closeModal();
-    this._renderModule();
-    this.toast('Ticket created!', 'success');
-  },
+  // First _ticketForm removed — second definition (line ~1433) is the canonical version
 
   _businessForm() {
     return `
@@ -1338,12 +1303,14 @@ const App = {
     if (!name) { this.toast('Business name is required!', 'error'); return; }
     const type = document.getElementById('bf_type')?.value;
     const newBiz = {
-      id: name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      id: name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString(36),
       name,
       type,
       tagline: document.getElementById('bf_tagline')?.value || '',
       color: document.getElementById('bf_color')?.value || '#6366F1',
-      icon: INDUSTRY_LABELS[type]?.split(' ')[0] || '🏢'
+      icon: INDUSTRY_LABELS[type]?.split(' ')[0] || '🏢',
+      addons: [],
+      crossSell: false
     };
     DB.addBusiness(newBiz);
     this.closeModal();
@@ -1379,19 +1346,24 @@ const App = {
     const email = document.getElementById('ef_email')?.value?.trim();
     if (!name || !email) { this.toast('Name and email required!', 'error'); return; }
     const role = document.getElementById('ef_role')?.value;
+    const username = (document.getElementById('ef_user')?.value || name.split(' ')[0]).toLowerCase().trim();
+    if (USERS.find(u => u.username.toLowerCase() === username)) {
+      this.toast('Username already exists!', 'error'); return;
+    }
     USERS.push({
-      id: 'u' + (USERS.length + 1),
-      name, email,
-      username: document.getElementById('ef_user')?.value || name.split(' ')[0].toLowerCase(),
+      id: uid(),
+      name, email, username,
       password: document.getElementById('ef_pass')?.value || 'pass123',
       role,
       avatar: initials(name),
       color: randomColor(name),
-      permissions: DEFAULT_ROLES[role] ? [...DEFAULT_ROLES[role]] : []
+      permissions: DEFAULT_ROLES[role] ? [...DEFAULT_ROLES[role]] : [],
+      allowedBusinesses: ['all']
     });
+    localStorage.setItem('agrani_users', JSON.stringify(USERS));
     this.closeModal();
     this._renderModule();
-    this.toast('Employee added!', 'success');
+    this.toast('Employee added! They can now log in.', 'success');
   },
 
   _permissionsForm(userId) {
@@ -1425,9 +1397,10 @@ const App = {
       if (document.getElementById('perm_' + k)?.checked) newPerms.push(k);
     });
     user.permissions = newPerms;
+    localStorage.setItem('agrani_users', JSON.stringify(USERS));
     this.closeModal();
     this._renderModule();
-    this.toast('Permissions updated successfully!', 'success');
+    this.toast('Permissions updated and saved!', 'success');
   },
 
   _ticketForm(bizId) {
