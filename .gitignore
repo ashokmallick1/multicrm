@@ -1,0 +1,11 @@
+# Python
+remove_false_data.py
+__pycache__/
+*.py[cod]
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db

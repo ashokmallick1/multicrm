@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  agrani-crm:
+    build: .
+    container_name: agrani-crm-app
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    # If you want to develop locally with Docker and see changes instantly without rebuilding,
+    # you can uncomment the following lines to mount your local files into the container:
+    volumes:
+      - ./:/usr/share/nginx/html
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: agrani-cloudflared
+    command: tunnel --no-autoupdate run --token eyJhIjoiMmQzODczMzU0MzM5MjZiZTQxY2VlMjY4YzdjNGVmZTUiLCJ0IjoiMzgwMWM2ODItZDM1Yi00MDUxLWE4MjQtMzAxOTg2NzhmNTY5IiwicyI6Ik5tRXpObVptTVdVdE1XVmhZeTAwTVRJeExXRXlPVFV0WWpKbVpqWmhNRFZtWm1ObSJ9
+    restart: unless-stopped
+    depends_on:
+      - agrani-crm
