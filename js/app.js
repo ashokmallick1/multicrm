@@ -953,6 +953,7 @@ const App = {
     else if (type === 'add-employee') html = this._employeeForm();
     else if (type === 'edit-permissions') html = this._permissionsForm(extra);
     else if (type === 'add-ticket') html = this._ticketForm(bizId);
+    else if (type === 'submit-eod') html = this._submitEodForm();
     else html = `<div class="modal-header"><span class="modal-title">Coming Soon</span><button class="modal-close" onclick="App.closeModal()">✕</button></div><div class="modal-body"><div class="empty-state"><div class="empty-state-icon">🚧</div><h3>Form coming soon!</h3></div></div>`;
     this.openModalHTML(html);
   },

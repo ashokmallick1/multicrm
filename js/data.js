@@ -228,7 +228,10 @@ if (!USERS || USERS.length === 0) {
   // Migrate: hydrate any users missing permissions or allowedBusinesses
   let needsSave = false;
   USERS.forEach(u => {
-    if (!u.permissions) { u.permissions = DEFAULT_ROLES[u.role] || []; needsSave = true; }
+    if (!u.permissions || u.role === 'Admin' || u.role === 'Manager') { 
+      u.permissions = DEFAULT_ROLES[u.role] || []; 
+      needsSave = true; 
+    }
     if (!u.allowedBusinesses) { u.allowedBusinesses = ['all']; needsSave = true; }
   });
   if (needsSave) localStorage.setItem('agrani_users', JSON.stringify(USERS));
