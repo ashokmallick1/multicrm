@@ -126,8 +126,11 @@ const App = {
       this.renderApp();
     } else {
       const err = document.getElementById('loginError');
-      err.classList.add('show');
-      setTimeout(() => err.classList.remove('show'), 3500);
+      if (err) {
+        err.textContent = 'Invalid username or password. Check your credentials and try again.';
+        err.classList.add('show');
+        setTimeout(() => err.classList.remove('show'), 4000);
+      }
     }
   },
 
@@ -1106,7 +1109,8 @@ const App = {
 
     let u = userId ? USERS.find(x => x.id === userId) : null;
     let allowedBiz = u ? (u.allowedBusinesses || []) : [];
-    const isAll = allowedBiz.includes('all');
+    // Default to 'All Businesses' when creating a NEW user for convenience
+    const isAll = u ? allowedBiz.includes('all') : true;
 
     const bizCheckboxes = BUSINESSES.map(b => `
       <label style="display:flex;align-items:center;gap:8px;padding:4px 0">
@@ -1136,7 +1140,10 @@ const App = {
           </div>
           <div class="form-group">
             <label>Password ${u ? '<span style="font-size:11px;color:var(--text-muted)">(Leave blank to keep current)</span>' : ''}</label>
-            <input type="password" id="userFormPassword" ${u ? '' : 'required'}>
+            <div style="position:relative">
+              <input type="password" id="userFormPassword" ${u ? '' : 'required'} style="padding-right:40px;width:100%">
+              <button type="button" onclick="const f=document.getElementById('userFormPassword');f.type=f.type==='password'?'text':'password';this.textContent=f.type==='password'?'👁':'🙈'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:14px">👁</button>
+            </div>
           </div>
           <div class="form-group">
             <label>Role</label>
@@ -1198,19 +1205,24 @@ const App = {
         this.toast('User updated!', 'success');
       }
     } else {
-      // Create
-      if (USERS.find(x => x.username === username)) return this.toast('Username already exists', 'error');
+      // Create - check case-insensitively to prevent login ambiguity
+      if (USERS.find(x => x.username.toLowerCase() === username.toLowerCase())) {
+        return this.toast('Username already taken. Please choose a different one.', 'error');
+      }
+      if (!password) {
+        return this.toast('Password is required for new users.', 'error');
+      }
       
       const newUser = {
         id: 'u' + Date.now(),
-        name, email, username, password, role,
+        name, email, username: username.toLowerCase().trim(), password, role,
         permissions: DEFAULT_ROLES[role] || DEFAULT_ROLES.Staff,
         allowedBusinesses,
         avatar: name.charAt(0).toUpperCase(),
-        color: '#' + Math.floor(Math.random()*16777215).toString(16)
+        color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0')
       };
       USERS.push(newUser);
-      this.toast('User created!', 'success');
+      this.toast(`✅ User "${name}" created! They can now log in with username: ${username.toLowerCase().trim()}`, 'success');
     }
 
     localStorage.setItem('agrani_users', JSON.stringify(USERS));
