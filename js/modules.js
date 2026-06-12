@@ -33,7 +33,7 @@ Modules.dashboard = {
       <p>${biz.name} — ${biz.tagline}</p>
     </div>
     <div class="page-header-actions">
-      <button class="btn btn-primary" onclick="App.openModal('add-contact')">+ Add Lead</button>
+      <button class="btn btn-primary" onclick="App.openModal('add-contact','${biz.id}')">+ Add Lead</button>
     </div>
   </div>
 
@@ -116,16 +116,20 @@ Modules.dashboard = {
         <button class="btn btn-secondary btn-sm" onclick="App.nav('tasks')">View All</button>
       </div>
       <div style="padding:8px 0">
-        ${tasks.filter(t=>!t.done).slice(0,5).map(t=>`
+        ${tasks.filter(t=>!t.done).slice(0,5).map(t=>{
+          const assignedUser = USERS.find(u => u.id === t.assignedTo);
+          const assigneeName = assignedUser ? assignedUser.name.split(' ')[0] : (t.assignee || 'Unassigned');
+          return `
           <div style="display:flex;align-items:center;gap:12px;padding:10px 22px;border-bottom:1px solid var(--border)">
             <div style="width:8px;height:8px;border-radius:50%;background:${t.priority==='high'?'var(--danger)':t.priority==='medium'?'var(--warning)':'var(--success)'};flex-shrink:0"></div>
             <div style="flex:1;overflow:hidden">
               <div style="font-size:13px;font-weight:500;color:var(--text-primary)">${escHtml(t.title)}</div>
-              <div style="font-size:11px;color:var(--text-muted)">${fmtDateShort(t.dueDate)} • ${escHtml(t.assignee||'Unassigned')}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${fmtDateShort(t.dueDate)} • ${escHtml(assigneeName)}</div>
             </div>
             <span class="badge badge-${t.priority==='high'?'danger':t.priority==='medium'?'warning':'success'}">${t.priority}</span>
-          </div>
-        `).join('')}
+          </div>`;
+        }).join('')}
+        ${tasks.filter(t=>!t.done).length === 0 ? `<div style="padding:24px;text-align:center;color:var(--text-muted)"><div style="font-size:24px;margin-bottom:8px">🎉</div><div style="font-size:13px">All tasks completed!</div></div>` : ''}
       </div>
     </div>
   </div>
@@ -135,7 +139,13 @@ Modules.dashboard = {
     const invoices = DB.bget(biz.id,'invoices');
     const deals    = DB.bget(biz.id,'deals');
     const months   = ['Jan','Feb','Mar','Apr','May','Jun'];
-    const revData  = months.map((_,i) => Math.floor(50000 + Math.random()*300000));
+    
+    // Group invoices by month
+    const revData = months.map((m, i) => {
+        return invoices
+            .filter(inv => inv.status === 'paid' && new Date(inv.date).getMonth() === i)
+            .reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    });
 
     const rc = document.getElementById('revenueChart');
     if(rc) new Chart(rc, {
@@ -707,6 +717,11 @@ Modules.timesheets = {
     // sort by date desc
     filtered.sort((a,b) => b.date.localeCompare(a.date));
 
+    const totalHours = filtered.reduce((s, e) => s + (e.hours || 0), 0);
+    const today = new Date().toISOString().split('T')[0];
+    const todayHours = filtered.filter(s => s.date === today).reduce((s, e) => s + (e.hours || 0), 0);
+    const uniqueMembers = [...new Set(filtered.map(s => s.userId))].length;
+
     return `
 <div class="page-content">
   <div class="page-header">
@@ -719,13 +734,19 @@ Modules.timesheets = {
     </div>
   </div>
 
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+    <div class="kpi-card" style="--kpi-color:#6366F1"><div class="kpi-icon">⏱️</div><div class="kpi-value">${totalHours}h</div><div class="kpi-label">Total Hours Logged</div></div>
+    <div class="kpi-card" style="--kpi-color:#10B981"><div class="kpi-icon">📅</div><div class="kpi-value">${todayHours}h</div><div class="kpi-label">Today's Hours</div></div>
+    ${isAdmin ? `<div class="kpi-card" style="--kpi-color:#F59E0B"><div class="kpi-icon">👥</div><div class="kpi-value">${uniqueMembers}</div><div class="kpi-label">Team Members Active</div></div>` : `<div class="kpi-card" style="--kpi-color:#F59E0B"><div class="kpi-icon">📝</div><div class="kpi-value">${filtered.length}</div><div class="kpi-label">My Entries</div></div>`}
+  </div>
+
   <div class="tabs mb-4">
     <button class="tab-btn ${activeTab==='mine'?'active':''}" onclick="App.state.tsTab='mine';App._renderModule()">My Timesheets</button>
     ${isAdmin ? `<button class="tab-btn ${activeTab==='all'?'active':''}" onclick="App.state.tsTab='all';App._renderModule()">All Team Members</button>` : ''}
   </div>
 
   <div class="card">
-    <table class="table">
+    <table class="data-table">
       <thead>
         <tr>
           <th>Date</th>
@@ -736,7 +757,7 @@ Modules.timesheets = {
         </tr>
       </thead>
       <tbody>
-        ${filtered.length===0?`<tr><td colspan="5" class="empty-state">No timesheets submitted yet.</td></tr>`:''}
+        ${filtered.length===0?`<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:12px">📋</div><div>No timesheets submitted yet.</div><div style="margin-top:12px"><button class="btn btn-primary btn-sm" onclick="App.openModal('submit-eod')">Submit Your First EOD</button></div></td></tr>`:''}
         ${filtered.map(s => `
         <tr>
           <td><div style="font-weight:500;white-space:nowrap">${fmtDateShort(s.date)}</div></td>
@@ -747,9 +768,9 @@ Modules.timesheets = {
               <span style="font-weight:500">${escHtml(s.userName)}</span>
             </div>
           </td>` : ''}
-          <td><span class="badge" style="background:var(--surface-hover);color:var(--text-primary)">${escHtml(s.bizName)}</span></td>
+          <td><span class="badge badge-primary" style="background:var(--surface-hover);color:var(--text-primary)">${escHtml(s.bizName)}</span></td>
           <td style="max-width:300px;white-space:normal;color:var(--text-secondary);font-size:13px">${escHtml(s.desc)}</td>
-          <td style="text-align:right;font-weight:600">${s.hours}h</td>
+          <td style="text-align:right;font-weight:700;color:var(--accent)">${s.hours}h</td>
         </tr>
         `).join('')}
       </tbody>

@@ -250,7 +250,7 @@ const App = {
       <div class="nav-item ${this.state.module === item.id ? 'active' : ''}" onclick="App.nav('${item.id}')" id="nav-${item.id}">
         <span class="nav-icon">${item.icon}</span>
         <span class="nav-label">${item.label}</span>
-        ${item.id === 'tasks' ? `<span class="nav-badge" id="taskBadge">${DB.bget(this.state.bizId,'tasks').filter(t=>!t.done && (!t.assignedTo || t.assignedTo===this.state.user.id)).length}</span>` : ''}
+        ${item.id === 'tasks' ? `<span class="nav-badge" id="taskBadge" ${DB.bget(this.state.bizId,'tasks').filter(t=>!t.done && (!t.assignedTo || t.assignedTo===this.state.user.id)).length === 0 ? 'style="display:none"' : ''}>${DB.bget(this.state.bizId,'tasks').filter(t=>!t.done && (!t.assignedTo || t.assignedTo===this.state.user.id)).length}</span>` : ''}
       </div>
     `).join('')}
 
@@ -346,7 +346,7 @@ const App = {
     </button>
     <button class="topbar-btn" title="Quick Add" onclick="App.openModal('add-contact','${biz.id}')">➕</button>
     <button class="topbar-btn" title="Refresh" onclick="App._renderModule()">🔄</button>
-    <div class="topbar-user-pill" title="Logged in as ${escHtml(this.state.user.name)} (${escHtml(this.state.user.role)})" onclick="App.logout()" style="cursor:pointer">
+    <div class="topbar-user-pill" title="Logged in as ${escHtml(this.state.user.name)} (${escHtml(this.state.user.role)})">
       <div class="user-avatar" style="width:28px;height:28px;font-size:12px;border-radius:8px;background:${this.state.user.color || '#6366F1'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${escHtml(this.state.user.avatar || this.state.user.name[0])}</div>
       <span style="font-size:12px;font-weight:500;color:var(--text-secondary)">${escHtml(this.state.user.name.split(' ')[0])}</span>
     </div>
@@ -1005,32 +1005,32 @@ const App = {
   viewTicket(id, bizId) {
     const t = DB.bget(bizId, 'tickets').find(x => x.id === id);
     if (!t) return;
+    const issue = t.title || t.issue || 'No subject';
+    const customer = t.contact || t.customer || 'Unknown';
     const html = `
-<div class="modal-header"><span class="modal-title">Ticket: ${t.id}</span><button class="modal-close" onclick="App.closeModal()">✕</button></div>
+<div class="modal-header"><span class="modal-title">🎫 Ticket: ${escHtml(t.id)}</span><button class="modal-close" onclick="App.closeModal()">✕</button></div>
 <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
   <div style="background:var(--bg-secondary);padding:16px;border-radius:8px">
     <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-      <div style="font-weight:bold;font-size:16px">${escHtml(t.issue)}</div>
-      <span class="badge badge-${t.priority==='High'?'danger':t.priority==='Medium'?'warning':'success'}">${t.priority}</span>
+      <div style="font-weight:bold;font-size:16px">${escHtml(issue)}</div>
+      <span class="badge badge-${t.priority==='High'?'danger':t.priority==='Medium'?'warning':'success'}">${t.priority||'Medium'}</span>
     </div>
-    <div style="font-size:13px;color:var(--text-muted);display:flex;gap:16px">
-      <span>👤 ${escHtml(t.customer)}</span>
+    <div style="font-size:13px;color:var(--text-muted);display:flex;gap:16px;flex-wrap:wrap">
+      <span>👤 ${escHtml(customer)}</span>
       <span>📅 ${fmtDateShort(t.date)}</span>
+      <span>👷 Assigned to: ${escHtml(t.assignee||'Unassigned')}</span>
       <span>Status: <span style="color:${t.status==='Resolved'?'var(--success)':'var(--warning)'}">${t.status}</span></span>
     </div>
   </div>
-  <div style="flex:1;border:1px solid var(--border);border-radius:8px;padding:16px;min-height:150px;background:var(--bg-card)">
-    <div style="text-align:center;color:var(--text-muted);font-size:12px;margin-bottom:12px">Ticket opened by ${escHtml(t.customer)}</div>
-    <div style="background:var(--bg-secondary);padding:12px;border-radius:8px;display:inline-block;max-width:80%;margin-bottom:12px">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">${escHtml(t.customer)}</div>
-      Issue: ${escHtml(t.issue)}
-    </div>
-    ${t.status === 'Resolved' ? `<div style="text-align:center;color:var(--success);font-size:12px;margin-top:12px">Ticket has been resolved.</div>` : ''}
+  <div style="border:1px solid var(--border);border-radius:8px;padding:16px;min-height:120px;background:var(--bg-card)">
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Issue Details</div>
+    <div style="font-size:14px;color:var(--text-secondary);line-height:1.6">${escHtml(t.desc || issue)}</div>
+    ${t.status === 'Resolved' ? `<div style="margin-top:16px;padding:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:6px;color:var(--success);font-size:13px;text-align:center">✅ Ticket has been resolved.</div>` : ''}
   </div>
   ${t.status !== 'Resolved' ? `
     <div style="display:flex;gap:8px">
-      <input type="text" class="form-input" placeholder="Type a reply or internal note..." style="flex:1" disabled title="Thread viewer messaging coming soon">
-      <button class="btn btn-success" onclick="App.closeTicket('${t.id}','${bizId}')">Mark Resolved</button>
+      <input type="text" id="ticketReplyInput" class="form-input" placeholder="Type a resolution note..." style="flex:1">
+      <button class="btn btn-success" onclick="App.resolveTicketWithNote('${t.id}','${bizId}')">✓ Resolve</button>
     </div>
   ` : ''}
 </div>`;
@@ -1039,6 +1039,21 @@ const App = {
 
   closeTicket(id, bizId) {
     DB.bupdate(bizId, 'tickets', id, { status: 'Resolved' });
+    this.closeModal();
+    this._renderModule();
+    this.toast('Ticket resolved ✓', 'success');
+  },
+
+  resolveTicketWithNote(id, bizId) {
+    const note = document.getElementById('ticketReplyInput')?.value?.trim();
+    DB.bupdate(bizId, 'tickets', id, { 
+      status: 'Resolved',
+      resolutionNote: note || 'Resolved',
+      resolvedAt: new Date().toISOString(),
+      resolvedBy: App.state.user.name
+    });
+    DB.logActivity(bizId, 'Resolved support ticket', id);
+    this.closeModal();
     this._renderModule();
     this.toast('Ticket resolved ✓', 'success');
   },
