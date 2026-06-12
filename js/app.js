@@ -1324,16 +1324,6 @@ const App = {
     this.closeModal();
     if (this.state.module === 'timesheets') this._renderModule();
     this.toast('Timesheet submitted successfully!', 'success');
-  },r.id,
-      assignedBy:this.state.user.id,
-      done: false
-    });
-    this.closeModal();
-    this._renderModule();
-    this.toast('Task added!', 'success');
-    // Update badge
-    const badge = document.getElementById('taskBadge');
-    if (badge) badge.textContent = DB.bget(bizId, 'tasks').filter(t => !t.done).length;
   },
 
   _invoiceForm(bizId) {
