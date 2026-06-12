@@ -1623,11 +1623,11 @@ Modules.compliance = {
 <div class="page-content">
   <div class="page-header">
     <div class="page-header-left"><h2>📅 Compliance Calendar</h2><p>Never miss a filing deadline</p></div>
-    <div class="page-header-actions"><button class="btn btn-primary">+ Add Deadline</button></div>
+    <div class="page-header-actions"><button class="btn btn-primary" onclick="openModal('addDeadline')">+ Add Deadline</button></div>
   </div>
   <div class="kpi-grid mb-4">
     <div class="kpi-card" style="--kpi-color:#EF4444"><div class="kpi-icon">🔴</div><div class="kpi-value">${deadlines.filter(d=>d.urgency==='urgent').length}</div><div class="kpi-label">Urgent (< 7 days)</div></div>
-    <div class="kpi-card" style="--kpi-color:#F59E0B"><div class="kpi-icon">🟡</div><div class="kpi-value">${deadlines.filter(d=>d.urgency==='soon').length}</div><div class="kpi-label">Coming Soon</div></div>
+    <div class="kpi-card" style="--kpi-color:#F59E0B"><div class="kpi-icon">🟡</div><div class="kpi-value">${deadlines.filter(d=>d.urgency==='soon').length}</div><div class="kpi-label">Due Soon</div></div>
     <div class="kpi-card" style="--kpi-color:#10B981"><div class="kpi-icon">🟢</div><div class="kpi-value">${deadlines.filter(d=>d.urgency==='ok').length}</div><div class="kpi-label">On Track</div></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
@@ -2299,7 +2299,7 @@ Modules.quotation_gen = {
 <div class="page-content">
   <div class="page-header">
     <div class="page-header-left"><h2>📄 Quotation Generator</h2><p>Build and send dynamic quotes to clients</p></div>
-    <div class="page-header-actions"><button class="btn btn-primary" onclick="App.toast('New quote builder coming soon','info')">+ New Quote</button></div>
+    <div class="page-header-actions"><button class="btn btn-primary" onclick="App.openModal('add-quote', '${biz.id}')">+ New Quote</button></div>
   </div>
   <div class="card" style="padding:24px;text-align:center;border-style:dashed">
     <div style="font-size:40px;margin-bottom:12px">📄</div>

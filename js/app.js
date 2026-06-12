@@ -875,7 +875,47 @@ const App = {
   },
 
   viewInvoice(id, bizId) {
-    this.toast('Invoice PDF generator coming soon', 'info');
+    const inv = DB.bget(bizId, 'invoices').find(x => x.id === id);
+    if (!inv) return;
+    const biz = BUSINESSES.find(b => b.id === bizId);
+    const html = `
+<div class="modal-header"><span class="modal-title">Invoice ${inv.number}</span><button class="modal-close" onclick="App.closeModal()">✕</button></div>
+<div class="modal-body" style="background:#fff;color:#000;padding:24px;border-radius:0 0 12px 12px">
+  <div style="display:flex;justify-content:space-between;border-bottom:2px solid #eee;padding-bottom:16px;margin-bottom:16px">
+    <div><h2 style="margin:0;color:var(--accent)">${escHtml(biz.name)}</h2><div style="color:#666;font-size:12px">${escHtml(biz.address || 'Address not set')}</div></div>
+    <div style="text-align:right">
+      <h1 style="margin:0;font-size:24px;color:#333">INVOICE</h1>
+      <div style="color:#666;font-size:12px"># ${inv.number}</div>
+      <div style="color:#666;font-size:12px">Date: ${fmtDateShort(inv.dueDate)}</div>
+    </div>
+  </div>
+  <div style="margin-bottom:24px">
+    <div style="color:#666;font-size:12px;text-transform:uppercase;margin-bottom:4px">Bill To:</div>
+    <div style="font-weight:bold;font-size:16px">${escHtml(inv.client)}</div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+    <tr style="background:#f8f9fa;border-bottom:2px solid #dee2e6">
+      <th style="padding:10px;text-align:left">Description</th>
+      <th style="padding:10px;text-align:right">Amount</th>
+    </tr>
+    <tr style="border-bottom:1px solid #eee">
+      <td style="padding:12px 10px">Professional Services</td>
+      <td style="padding:12px 10px;text-align:right;font-weight:bold">${fmtINR(inv.amount)}</td>
+    </tr>
+  </table>
+  <div style="display:flex;justify-content:flex-end">
+    <div style="width:50%">
+      <div style="display:flex;justify-content:space-between;padding:8px 10px;font-weight:bold;font-size:18px;background:#f8f9fa;border-radius:6px">
+        <span>Total Due:</span><span>${fmtINR(inv.amount)}</span>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:24px;display:flex;gap:12px;justify-content:flex-end">
+    <button class="btn btn-secondary" onclick="window.print()">🖨️ Print</button>
+    ${inv.status !== 'paid' ? `<button class="btn btn-success" onclick="App.recordPayment('${inv.id}','${bizId}')">₹ Mark as Paid</button>` : `<span class="badge badge-success" style="font-size:16px;padding:8px 16px">PAID</span>`}
+  </div>
+</div>`;
+    this.openModalHTML(html);
   },
 
   delInvoice(id, bizId) {
@@ -886,7 +926,53 @@ const App = {
   },
 
   viewQuote(id, bizId) {
-    this.toast('Quotation viewer coming soon', 'info');
+    const q = DB.bget(bizId, 'quotes').find(x => x.id === id);
+    if (!q) return;
+    const biz = BUSINESSES.find(b => b.id === bizId);
+    const html = `
+<div class="modal-header"><span class="modal-title">Quotation ${q.number}</span><button class="modal-close" onclick="App.closeModal()">✕</button></div>
+<div class="modal-body" style="background:#fff;color:#000;padding:24px;border-radius:0 0 12px 12px">
+  <div style="display:flex;justify-content:space-between;border-bottom:2px solid #eee;padding-bottom:16px;margin-bottom:16px">
+    <div><h2 style="margin:0;color:var(--accent)">${escHtml(biz.name)}</h2><div style="color:#666;font-size:12px">${escHtml(biz.address || 'Address not set')}</div></div>
+    <div style="text-align:right">
+      <h1 style="margin:0;font-size:24px;color:#333">QUOTATION</h1>
+      <div style="color:#666;font-size:12px"># ${q.number}</div>
+      <div style="color:#666;font-size:12px">Date: ${fmtDateShort(q.date)}</div>
+    </div>
+  </div>
+  <div style="margin-bottom:24px;display:flex;justify-content:space-between">
+    <div>
+      <div style="color:#666;font-size:12px;text-transform:uppercase;margin-bottom:4px">Quote For:</div>
+      <div style="font-weight:bold;font-size:16px">${escHtml(q.client)}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="color:#666;font-size:12px;text-transform:uppercase;margin-bottom:4px">Subject:</div>
+      <div style="font-weight:bold">${escHtml(q.subject)}</div>
+    </div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+    <tr style="background:#f8f9fa;border-bottom:2px solid #dee2e6">
+      <th style="padding:10px;text-align:left">Description</th>
+      <th style="padding:10px;text-align:right">Amount</th>
+    </tr>
+    <tr style="border-bottom:1px solid #eee">
+      <td style="padding:12px 10px">${escHtml(q.subject)}</td>
+      <td style="padding:12px 10px;text-align:right;font-weight:bold">${fmtINR(q.amount)}</td>
+    </tr>
+  </table>
+  <div style="display:flex;justify-content:flex-end">
+    <div style="width:50%">
+      <div style="display:flex;justify-content:space-between;padding:8px 10px;font-weight:bold;font-size:18px;background:#f8f9fa;border-radius:6px">
+        <span>Total Estimate:</span><span>${fmtINR(q.amount)}</span>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:24px;display:flex;gap:12px;justify-content:flex-end">
+    <button class="btn btn-secondary" onclick="window.print()">🖨️ Print</button>
+    ${q.status !== 'accepted' ? `<button class="btn btn-primary" onclick="App.convertQuoteToInvoice('${q.id}','${bizId}')">Convert to Invoice</button>` : `<span class="badge badge-success" style="font-size:16px;padding:8px 16px">ACCEPTED</span>`}
+  </div>
+</div>`;
+    this.openModalHTML(html);
   },
 
   convertQuoteToInvoice(id, bizId) {
@@ -917,7 +1003,38 @@ const App = {
   // TICKETS
   // =============================================
   viewTicket(id, bizId) {
-    this.toast('Ticket thread viewer coming soon', 'info');
+    const t = DB.bget(bizId, 'tickets').find(x => x.id === id);
+    if (!t) return;
+    const html = `
+<div class="modal-header"><span class="modal-title">Ticket: ${t.id}</span><button class="modal-close" onclick="App.closeModal()">✕</button></div>
+<div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
+  <div style="background:var(--bg-secondary);padding:16px;border-radius:8px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <div style="font-weight:bold;font-size:16px">${escHtml(t.issue)}</div>
+      <span class="badge badge-${t.priority==='High'?'danger':t.priority==='Medium'?'warning':'success'}">${t.priority}</span>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);display:flex;gap:16px">
+      <span>👤 ${escHtml(t.customer)}</span>
+      <span>📅 ${fmtDateShort(t.date)}</span>
+      <span>Status: <span style="color:${t.status==='Resolved'?'var(--success)':'var(--warning)'}">${t.status}</span></span>
+    </div>
+  </div>
+  <div style="flex:1;border:1px solid var(--border);border-radius:8px;padding:16px;min-height:150px;background:var(--bg-card)">
+    <div style="text-align:center;color:var(--text-muted);font-size:12px;margin-bottom:12px">Ticket opened by ${escHtml(t.customer)}</div>
+    <div style="background:var(--bg-secondary);padding:12px;border-radius:8px;display:inline-block;max-width:80%;margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">${escHtml(t.customer)}</div>
+      Issue: ${escHtml(t.issue)}
+    </div>
+    ${t.status === 'Resolved' ? `<div style="text-align:center;color:var(--success);font-size:12px;margin-top:12px">Ticket has been resolved.</div>` : ''}
+  </div>
+  ${t.status !== 'Resolved' ? `
+    <div style="display:flex;gap:8px">
+      <input type="text" class="form-input" placeholder="Type a reply or internal note..." style="flex:1" disabled title="Thread viewer messaging coming soon">
+      <button class="btn btn-success" onclick="App.closeTicket('${t.id}','${bizId}')">Mark Resolved</button>
+    </div>
+  ` : ''}
+</div>`;
+    this.openModalHTML(html);
   },
 
   closeTicket(id, bizId) {
@@ -953,6 +1070,7 @@ const App = {
     else if (type === 'add-employee') html = this._employeeForm();
     else if (type === 'edit-permissions') html = this._permissionsForm(extra);
     else if (type === 'add-ticket') html = this._ticketForm(bizId);
+    else if (type === 'add-quote') html = this._quoteForm(bizId);
     else if (type === 'submit-eod') html = this._submitEodForm();
     else html = `<div class="modal-header"><span class="modal-title">Coming Soon</span><button class="modal-close" onclick="App.closeModal()">✕</button></div><div class="modal-body"><div class="empty-state"><div class="empty-state-icon">🚧</div><h3>Form coming soon!</h3></div></div>`;
     this.openModalHTML(html);
@@ -1502,6 +1620,58 @@ const App = {
     this._renderModule();
     this.toast('Permissions updated and saved!', 'success');
   },
+
+  _quoteForm(bizId) {
+    const contacts = DB.bget(bizId, 'contacts');
+    return `
+<div class="modal-header"><span class="modal-title">📄 Generate Quotation</span><button class="modal-close" onclick="App.closeModal()">✕</button></div>
+<div class="modal-body">
+  <form onsubmit="App.saveQuote(event, '${bizId}')" style="display:flex;flex-direction:column;gap:12px">
+    <div class="form-group">
+      <label>Client / Contact</label>
+      <select id="quoteClient" class="form-select" required>
+        ${contacts.map(c => `<option value="${escHtml(c.name)}">${escHtml(c.name)}</option>`).join('')}
+        ${contacts.length === 0 ? '<option value="Walk-in Client">Walk-in Client</option>' : ''}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Quotation Subject</label>
+      <input type="text" id="quoteSubject" class="form-input" placeholder="e.g. Website Redesign Proposal" required>
+    </div>
+    <div class="form-group">
+      <label>Total Estimate Amount (₹)</label>
+      <input type="number" id="quoteAmount" class="form-input" placeholder="0.00" required>
+    </div>
+    <div class="form-group">
+      <label>Notes / Terms</label>
+      <textarea id="quoteNotes" class="form-input" placeholder="Terms and conditions..." rows="3"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-top:8px">Generate Quotation</button>
+  </form>
+</div>`;
+  },
+
+  saveQuote(e, bizId) {
+    e.preventDefault();
+    const client = document.getElementById('quoteClient').value;
+    const subject = document.getElementById('quoteSubject').value;
+    const amount = Number(document.getElementById('quoteAmount').value);
+    
+    DB.bpush(bizId, 'quotes', {
+      number: 'QT-' + Math.floor(10000 + Math.random()*90000),
+      client: client,
+      subject: subject,
+      amount: amount,
+      status: 'draft',
+      date: new Date().toISOString().split('T')[0]
+    });
+    
+    DB.logActivity(bizId, 'Generated new quotation for', client);
+    this.closeModal();
+    this._renderModule();
+    this.toast('Quotation generated successfully ✓', 'success');
+  },
+
 
   _ticketForm(bizId) {
     return `
