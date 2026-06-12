@@ -289,7 +289,7 @@ const App = {
     ` : ''}
 
     <div class="nav-divider"></div>
-    ${BOTTOM_NAV.map(item => `
+    ${BOTTOM_NAV.filter(item => item.id !== 'team' || (this.state.user.permissions || []).includes('manage_team')).map(item => `
       <div class="nav-item ${this.state.module === item.id ? 'active' : ''}" onclick="App.nav('${item.id}')" id="nav-${item.id}">
         <span class="nav-icon">${item.icon}</span>
         <span class="nav-label">${item.label}</span>
