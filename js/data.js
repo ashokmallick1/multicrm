@@ -374,7 +374,7 @@ function escHtml(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function getWhatsAppUrl(phone, name = '') {
+function getWhatsAppUrl(phone, name = '', cachedTemplate = null) {
   if (!phone) return '';
   let parts = phone.split(/:::|,|\//);
   let p = parts[0].trim();
@@ -386,9 +386,12 @@ function getWhatsAppUrl(phone, name = '') {
     p = '91' + p;
   }
   
-  let bizId = typeof App !== 'undefined' && App.state && App.state.bizId ? App.state.bizId : 'agrani-properties';
-  let defaultMsg = 'Hello {name}, this is Agrani Properties. We have some exciting real estate updates for you. Please let us know if you are looking to buy or invest.';
-  let template = localStorage.getItem('agrani_wa_template_' + bizId) || defaultMsg;
+  let template = cachedTemplate;
+  if (!template) {
+    let bizId = typeof App !== 'undefined' && App.state && App.state.bizId ? App.state.bizId : 'agrani-properties';
+    let defaultMsg = 'Hello {name}, this is Agrani Properties. We have some exciting real estate updates for you. Please let us know if you are looking to buy or invest.';
+    template = localStorage.getItem('agrani_wa_template_' + bizId) || defaultMsg;
+  }
   
   let message = template.replace(/{name}/g, name).replace(/{phone}/g, parts[0].trim());
   return 'https://wa.me/' + p + '?text=' + encodeURIComponent(message);

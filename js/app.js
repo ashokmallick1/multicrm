@@ -597,10 +597,34 @@ const App = {
     if (status) contacts = contacts.filter(c => c.status === status);
     if (source) contacts = contacts.filter(c => c.source === source);
 
+    const totalCount = contacts.length;
+    const limit = this.state.contactsLimit || 100;
+    const displayed = contacts.slice(0, limit);
+
     const tbody = document.getElementById('contactsBody');
     const count = document.getElementById('contactCount');
-    if (tbody) tbody.innerHTML = contacts.map(c => Modules.contacts._row(c)).join('');
-    if (count) count.textContent = contacts.length + ' contacts';
+    const cachedTemplate = localStorage.getItem('agrani_wa_template_' + bizId) || 'Hello {name}, this is Agrani Properties. We have some exciting real estate updates for you. Please let us know if you are looking to buy or invest.';
+
+    if (tbody) tbody.innerHTML = displayed.map(c => Modules.contacts._row(c, cachedTemplate)).join('');
+    if (count) count.textContent = `Showing ${displayed.length} of ${totalCount} contacts`;
+
+    const loadMoreBtn = document.getElementById('loadMoreContacts');
+    if (loadMoreBtn) {
+      if (totalCount > displayed.length) {
+        loadMoreBtn.classList.remove('hidden');
+        loadMoreBtn.textContent = `Show More (+100 of ${totalCount - displayed.length} remaining)`;
+      } else {
+        loadMoreBtn.classList.add('hidden');
+      }
+    }
+  },
+
+  loadMoreContacts(bizId) {
+    this.state.contactsLimit = (this.state.contactsLimit || 100) + 100;
+    const searchVal = document.getElementById('contactSearch')?.value || '';
+    const statusVal = document.getElementById('statusFilter')?.value || '';
+    const sourceVal = document.getElementById('sourceFilter')?.value || '';
+    this.filterContacts(bizId, searchVal, statusVal, sourceVal);
   },
 
   viewContact(id, bizId) {
@@ -620,7 +644,7 @@ const App = {
     <div class="avatar" style="width:64px;height:64px;font-size:24px;background:${randomColor(contact.name)}">${initials(contact.name)}</div>
     <div>
       <div style="font-size:18px;font-weight:700;color:var(--text-primary)">${escHtml(contact.name)}</div>
-      <div style="font-size:13px;color:var(--text-muted)">📧 ${escHtml(contact.email||'N/A')} &nbsp;•&nbsp; 📞 ${contact.phone ? `<a href="tel:${contact.phone}" style="color:var(--accent);text-decoration:none">${escHtml(contact.phone)}</a> &nbsp;<a href="${getWhatsAppUrl(contact.phone)}" target="_blank" title="Send WhatsApp" style="color:#25D366;text-decoration:none;font-size:14px">💬</a>` : 'N/A'}</div>
+      <div style="font-size:13px;color:var(--text-muted)">📧 ${escHtml(contact.email||'N/A')} &nbsp;•&nbsp; 📞 ${contact.phone ? `<a href="tel:${contact.phone}" style="color:var(--accent);text-decoration:none">${escHtml(contact.phone)}</a> &nbsp;<a href="${getWhatsAppUrl(contact.phone, contact.name)}" target="_blank" title="Send WhatsApp" style="color:#25D366;text-decoration:none;font-size:14px">💬</a>` : 'N/A'}</div>
       <div style="font-size:13px;color:var(--text-muted);margin-top:4px">🏢 ${escHtml(contact.company||'No Company')} &nbsp;•&nbsp; 📍 ${escHtml(contact.city||'N/A')}</div>
     </div>
   </div>
