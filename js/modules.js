@@ -338,6 +338,24 @@ Modules.contacts = {
 
   <!-- LIST VIEW -->
   <div id="contactsList" class="hidden">
+    <!-- WHATSAPP PREDEFINED MESSAGE TEMPLATE CARD -->
+    <div class="card mb-4" style="border-left:4px solid #25D366; background: rgba(37, 211, 102, 0.02)">
+      <div class="card-body" style="padding:16px 20px">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <span style="font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;font-size:14px">
+              💬 Predefined WhatsApp Message Template
+            </span>
+            <span style="font-size:11px;color:var(--text-muted)">Use <code>{name}</code> for contact name, <code>{phone}</code> for phone number</span>
+          </div>
+          <div style="display:flex;gap:12px;align-items:stretch;flex-wrap:wrap">
+            <textarea class="form-input" id="globalWaTemplate" style="flex:1;min-width:280px;height:54px;min-height:54px;resize:vertical;font-size:13px;padding:8px 12px;background:rgba(0,0,0,0.2)" placeholder="Type template message here...">${escHtml(localStorage.getItem('agrani_wa_template_' + biz.id) || 'Hello {name}, this is Agrani Properties. We have some exciting real estate updates for you. Please let us know if you are looking to buy or invest.')}</textarea>
+            <button class="btn btn-primary" style="background:#25D366;border-color:#25D366;color:white;font-weight:600;padding:0 20px" onclick="App.saveWaTemplate('${biz.id}')">💾 Save Template</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card mb-4">
       <div class="card-body" style="padding:12px 22px">
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -355,7 +373,7 @@ Modules.contacts = {
       </div>
     </div>
     <div class="table-wrapper">
-      <table class="data-table" id="contactsTable">
+      <table class="excel-table" id="contactsTable">
         <thead><tr>
           <th>Name</th><th>Phone</th><th>City</th><th>Source</th><th>Stage</th><th>Value</th><th>Actions</th>
         </tr></thead>
@@ -385,7 +403,7 @@ Modules.contacts = {
           <div style="font-size:11px;color:var(--text-muted)">${escHtml(c.email||'')}</div>
         </div>
       </div></td>
-      <td>${c.phone ? `<a href="tel:${c.phone}" style="color:var(--accent)">${escHtml(c.phone)}</a>` : '—'}</td>
+      <td>${c.phone ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><a href="tel:${c.phone}" style="color:var(--accent);text-decoration:none">${escHtml(c.phone)}</a><a href="${getWhatsAppUrl(c.phone, c.name)}" target="_blank" class="btn btn-icon btn-sm wa-link" data-phone="${escHtml(c.phone)}" data-name="${escHtml(c.name)}" title="Send WhatsApp Message" style="color:#25D366;font-size:14px;padding:2px;width:24px;height:24px;display:flex;align-items:center;justify-content:center">💬</a></div>` : '—'}</td>
       <td>${escHtml(c.city||'—')}</td>
       <td><span class="badge badge-muted">${escHtml(c.source||'—')}</span></td>
       <td><span class="badge badge-${sColors[c.status]||'muted'}">${sLabels[c.status]||c.status||'new'}</span></td>
@@ -395,7 +413,6 @@ Modules.contacts = {
           <button class="btn btn-primary btn-sm" onclick="App.viewContact('${c.id}','${c._bizId||App.state.bizId}')">View</button>
           <button class="btn btn-secondary btn-sm" onclick="App.editContact('${c.id}','${c._bizId||App.state.bizId}')">✏️</button>
           ${c.phone ? `<a href="tel:${c.phone}" class="btn btn-icon btn-sm" title="Call">📞</a>` : ''}
-          ${c.phone ? `<a href="${getWhatsAppUrl(c.phone)}" target="_blank" class="btn btn-icon btn-sm" title="WhatsApp" style="color:#25D366;font-size:14px">💬</a>` : ''}
           <button class="btn btn-icon btn-sm" onclick="App.delContact('${c.id}')">🗑️</button>
         </div>
       </td>

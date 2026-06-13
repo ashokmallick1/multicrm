@@ -736,6 +736,20 @@ const App = {
     document.getElementById('contactsList').classList.toggle('hidden', view !== 'list');
   },
 
+  saveWaTemplate(bizId) {
+    const txt = document.getElementById('globalWaTemplate');
+    if (txt) {
+      localStorage.setItem('agrani_wa_template_' + bizId, txt.value);
+      this.toast('WhatsApp template saved successfully!', 'success');
+      const waLinks = document.querySelectorAll('.wa-link');
+      waLinks.forEach(link => {
+        const phone = link.getAttribute('data-phone');
+        const name = link.getAttribute('data-name');
+        link.href = getWhatsAppUrl(phone, name);
+      });
+    }
+  },
+
   quickStageContact(id, bizId, stage) {
     DB.bupdate(bizId, 'contacts', id, { status: stage });
     this._renderModule();
