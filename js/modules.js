@@ -395,6 +395,7 @@ Modules.contacts = {
           <button class="btn btn-primary btn-sm" onclick="App.viewContact('${c.id}','${c._bizId||App.state.bizId}')">View</button>
           <button class="btn btn-secondary btn-sm" onclick="App.editContact('${c.id}','${c._bizId||App.state.bizId}')">✏️</button>
           ${c.phone ? `<a href="tel:${c.phone}" class="btn btn-icon btn-sm" title="Call">📞</a>` : ''}
+          ${c.phone ? `<a href="${getWhatsAppUrl(c.phone)}" target="_blank" class="btn btn-icon btn-sm" title="WhatsApp" style="color:#25D366;font-size:14px">💬</a>` : ''}
           <button class="btn btn-icon btn-sm" onclick="App.delContact('${c.id}')">🗑️</button>
         </div>
       </td>

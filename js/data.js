@@ -360,6 +360,20 @@ function escHtml(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function getWhatsAppUrl(phone) {
+  if (!phone) return '';
+  let parts = phone.split(/:::|,|\//);
+  let p = parts[0].trim();
+  p = p.replace(/\D/g, ''); // keep only digits
+  if (p.startsWith('0')) {
+    p = p.substring(1);
+  }
+  if (p.length === 10) {
+    p = '91' + p;
+  }
+  return 'https://wa.me/' + p;
+}
+
 // =============================================
 // SEED MOCK DATA FOR EACH BUSINESS
 // =============================================
@@ -386,9 +400,31 @@ const CITIES = ['Bhubaneswar','Cuttack','Puri','Rourkela','Sambalpur','Berhampur
 const PRIORITIES = ['high','medium','low'];
 
 function seedBusiness(biz) {
-  if (DB.bget(biz.id,'_seeded').length > 0) return;
-  DB.bpush(biz.id, '_seeded', { status: true });
-  // False data generation removed as requested
+  if (DB.bget(biz.id,'_seeded').length > 0 && !(biz.id === 'agrani-properties' && DB.bget(biz.id, 'contacts').length === 0)) return;
+  if (DB.bget(biz.id,'_seeded').length === 0) {
+    DB.bpush(biz.id, '_seeded', { status: true });
+  }
+  
+  if (biz.id === 'agrani-properties') {
+    if (typeof AGRANI_PROPERTIES_CONTACTS !== 'undefined') {
+      const contacts = AGRANI_PROPERTIES_CONTACTS.map((c, index) => {
+        return {
+          id: 'apc_' + index,
+          name: c[0],
+          phone: c[1],
+          city: 'Bhubaneswar',
+          source: 'Imported',
+          status: 'new',
+          value: 0,
+          email: '',
+          company: 'Agrani Properties Customer',
+          createdAt: new Date().toISOString()
+        };
+      });
+      DB.bset(biz.id, 'contacts', contacts);
+      console.log('Seeded ' + contacts.length + ' contacts for Agrani Properties.');
+    }
+  }
 }
 
 // One-time purge script to clear existing false data

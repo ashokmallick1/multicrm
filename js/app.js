@@ -620,7 +620,7 @@ const App = {
     <div class="avatar" style="width:64px;height:64px;font-size:24px;background:${randomColor(contact.name)}">${initials(contact.name)}</div>
     <div>
       <div style="font-size:18px;font-weight:700;color:var(--text-primary)">${escHtml(contact.name)}</div>
-      <div style="font-size:13px;color:var(--text-muted)">📧 ${escHtml(contact.email||'N/A')} &nbsp;•&nbsp; 📞 ${escHtml(contact.phone||'N/A')}</div>
+      <div style="font-size:13px;color:var(--text-muted)">📧 ${escHtml(contact.email||'N/A')} &nbsp;•&nbsp; 📞 ${contact.phone ? `<a href="tel:${contact.phone}" style="color:var(--accent);text-decoration:none">${escHtml(contact.phone)}</a> &nbsp;<a href="${getWhatsAppUrl(contact.phone)}" target="_blank" title="Send WhatsApp" style="color:#25D366;text-decoration:none;font-size:14px">💬</a>` : 'N/A'}</div>
       <div style="font-size:13px;color:var(--text-muted);margin-top:4px">🏢 ${escHtml(contact.company||'No Company')} &nbsp;•&nbsp; 📍 ${escHtml(contact.city||'N/A')}</div>
     </div>
   </div>
