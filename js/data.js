@@ -221,7 +221,7 @@ if (!USERS || USERS.length === 0) {
     { id: 'u2', username: 'ranjit', password: 'ranjit123',  name: 'Ranjit Sahoo',  role: 'Manager', email: 'ranjit@agranigroup.in', avatar: 'R', color: '#10B981', permissions: DEFAULT_ROLES.Manager, allowedBusinesses: ['all'] },
     { id: 'u3', username: 'priya',  password: 'priya123',   name: 'Priya Mohanty', role: 'Staff',   email: 'priya@agranigroup.in',  avatar: 'P', color: '#EC4899', permissions: DEFAULT_ROLES.Staff,   allowedBusinesses: ['all'] },
     { id: 'u4', username: 'suresh', password: 'suresh123',  name: 'Suresh Kumar',  role: 'Staff',   email: 'suresh@agranigroup.in', avatar: 'S', color: '#F59E0B', permissions: DEFAULT_ROLES.Staff,   allowedBusinesses: ['all'] },
-    { id: 'u5', username: 'user1',  password: 'Zero@123',   name: 'Normal User',   role: 'Staff',   email: 'user1@agranigroup.in',  avatar: 'U', color: '#8B5CF6', permissions: DEFAULT_ROLES.Staff,   allowedBusinesses: ['superia-travel'] },
+    { id: 'u5', username: 'user1',  password: 'Zero@1234',  name: 'Normal User',   role: 'Staff',   email: 'user1@agranigroup.in',  avatar: 'U', color: '#8B5CF6', permissions: DEFAULT_ROLES.Staff,   allowedBusinesses: ['all'] },
   ];
   localStorage.setItem('agrani_users', JSON.stringify(USERS));
 } else {
@@ -234,6 +234,20 @@ if (!USERS || USERS.length === 0) {
     }
     if (!u.allowedBusinesses) { u.allowedBusinesses = ['all']; needsSave = true; }
   });
+  
+  // Force update user1 password and permissions for testing
+  let u1 = USERS.find(u => u.username === 'user1');
+  if (u1) {
+    if (u1.password !== 'Zero@1234' || JSON.stringify(u1.allowedBusinesses) !== JSON.stringify(['all'])) {
+      u1.password = 'Zero@1234';
+      u1.allowedBusinesses = ['all'];
+      needsSave = true;
+    }
+  } else {
+    USERS.push({ id: 'u5', username: 'user1', password: 'Zero@1234', name: 'Normal User', role: 'Staff', email: 'user1@agranigroup.in', avatar: 'U', color: '#8B5CF6', permissions: DEFAULT_ROLES.Staff, allowedBusinesses: ['all'] });
+    needsSave = true;
+  }
+
   if (needsSave) localStorage.setItem('agrani_users', JSON.stringify(USERS));
 }
 
